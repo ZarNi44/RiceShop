@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ဆန်ဆိုင် မှတ်တမ်းစနစ်</title>
+    <style>
+        * { box-sizing: border-box; font-family: sans-serif; }
+        body { background-color: #f7f9fa; margin: 0; padding: 15px; }
+        .container { max-width: 480px; margin: 0 auto; background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: #ff9800; margin-top: 0; font-size: 22px; }
+        .tabs { display: flex; background: #f0f0f2; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: transparent; font-size: 14px; font-weight: bold; border-radius: 10px; cursor: pointer; }
+        .tab-btn.active { background: white; color: #ff9800; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: bold; color: #444; font-size: 14px; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 16px; background: #fafafa; }
+        input:focus, select:focus { border-color: #ff9800; outline: none; background: white; }
+        .row { display: flex; gap: 12px; }
+        .row .form-group { flex: 1; }
+        .btn { width: 100%; padding: 14px; background: #ff9800; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
+        .page { display: none; }
+        .page.active { display: block; }
+        .item-list { margin-top: 15px; max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 10px; }
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid #eee; background: #fff; }
+        .del-btn { background: #ff5252; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🌾 ဆန်ဆိုင် စာရင်းချုပ်စနစ်</h2>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('input-page')">📋 စာရင်းသွင်းရန်</button>
+        <button class="tab-btn" onclick="switchTab('settings-page')">⚙️ ဆန်အမည်များ ပြင်ရန်</button>
+    </div>
+
+    <div id="input-page" class="page active">
+        <div class="form-group">
+            <label>ရက်စွဲ</label>
+            <input type="date" id="date">
+        </div>
+        
+        <div class="form-group">
+            <label>လုပ်ငန်းအမျိုးအစား</label>
+            <select id="type">
+                <option>ကုန်ဝင် (ကားချ)</option>
+                <option>ကုန်ထွက် (ကားတင်)</option>
+            </select>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>ဆန်အစုအဖွဲ့</label>
+                <select id="group" onchange="updateRiceDropdown()"></select>
+            </div>
+            <div class="form-group">
+                <label>ဆန်အမည်</label>
+                <select id="rice-name"></select>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="form-group">
+                <label>အိတ်ရေ</label>
+                <input type="number" id="bags" placeholder="၁၅၀">
+            </div>
+            <div class="form-group">
+                <label>ကားနံပါတ်</label>
+                <input type="text" id="truck" placeholder="3B/1234">
+            </div>
+        </div>
+
+        <button class="btn" onclick="shareReport()">Viber / Messenger သို့ ပို့ရန်</button>
+    </div>
+
+    <div id="settings-page" class="page">
+        <div class="form-group">
+            <label>ဘယ်အုပ်စုထဲ ထည့်မလဲ?</label>
+            <select id="new-group">
+                <option value="ပေါ်ဆန်းအစုအဖွဲ့">ပေါ်ဆန်းအစုအဖွဲ့</option>
+                <option value="ဧည့်မထအစုအဖွဲ့">ဧည့်မထအစုအဖွဲ့</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>ဆန်အမည်သစ်</label>
+            <input type="text" id="new-name" placeholder="ဥပမာ - ရွှေဘိုပေါ်ဆန်း">
+        </div>
+        <button class="btn" style="background: #4caf50;" onclick="addRice()">➕ ဆန်အမည်သစ် သိမ်းရန်</button>
+
+        <label style="margin-top: 20px;">လက်ရှိ ဆန်အမျိုးအစားများ</label>
+        <div id="rice-list" class="item-list"></div>
+    </div>
+</div>
+
+<script>
+    let defaultData = {
+        'ပေါ်ဆန်းအစုအဖွဲ့': ['ကျားပျံ', 'တောင်ပျံ', 'ဧရာပေါ်ဆန်း'],
+        'ဧည့်မထအစုအဖွဲ့': ['ရက်ကိုးဆယ်', 'သုခ', 'ဆင်းသွယ်']
+    };
+
+    if(!localStorage.getItem('riceData')) {
+        localStorage.setItem('riceData', JSON.stringify(defaultData));
+    }
+
+    document.getElementById('date').valueAsDate = new Date();
+
+    function getData() { return JSON.parse(localStorage.getItem('riceData')); }
+
+    function switchTab(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+        event.currentTarget.classList.add('active');
+        if(pageId === 'settings-page') { renderSettings(); } else { initDropdowns(); }
+    }
+
+    function initDropdowns() {
+        const data = getData();
+        const groupSel = document.getElementById('group');
+        groupSel.innerHTML = '';
+        Object.keys(data).forEach(g => {
+            groupSel.innerHTML += `<option value="${g}">${g}</option>`;
+        });
+        updateRiceDropdown();
+    }
+
+    function updateRiceDropdown() {
+        const data = getData();
+        const g = document.getElementById('group').value;
+        const nameSel = document.getElementById('rice-name');
+        nameSel.innerHTML = '';
+        if(data[g]) {
+            data[g].forEach(n => { nameSel.innerHTML += `<option value="${n}">${n}</option>`; });
+        }
+    }
+
+    function addRice() {
+        const g = document.getElementById('new-group').value;
+        const n = document.getElementById('new-name').value.trim();
+        if(!n) return alert('ဆန်အမည် ရိုက်ပါဗျာ');
+        let data = getData();
+        if(!data[g].includes(n)) {
+            data[g].push(n);
+            localStorage.setItem('riceData', JSON.stringify(data));
+            document.getElementById('new-name').value = '';
+            renderSettings();
+        }
+    }
+
+    function deleteRice(g, n) {
+        let data = getData();
+        data[g] = data[g].filter(i => i !== n);
+        localStorage.setItem('riceData', JSON.stringify(data));
+        renderSettings();
+    }
+
+    function renderSettings() {
+        const data = getData();
+        const list = document.getElementById('rice-list');
+        list.innerHTML = '';
+        Object.keys(data).forEach(g => {
+            data[g].forEach(n => {
+                list.innerHTML += `<div class="list-item"><span>[${g}] ${n}</span><button class="del-btn" onclick="deleteRice('${g}','${n}')">ဖျက်ရန်</button></div>`;
+            });
+        });
+    }
+
+    function shareReport() {
+        const date = document.getElementById('date').value;
+        const type = document.getElementById('type').value;
+        const group = document.getElementById('group').value;
+        const name = document.getElementById('rice-name').value;
+        const bags = document.getElementById('bags').value;
+        const truck = document.getElementById('truck').value;
+
+        const text = `📝 **ဆန်ဆိုင် - နေ့စဉ် စာရင်းချုပ်**\n📅 **ရက်စွဲ:** ${date}\n\n🔹 **လုပ်ငန်း:** ${type}\n🌾 **ဆန်အမျိုးအစား:** [${group}] ${name}\n📦 **အိတ်ရေ:** ${bags} အိတ်\n🚚 **ကားနံပါတ်:** ${truck}\n\n_Report generated by RiceShop App_`;
+
+        if (navigator.share) {
+            navigator.share({ title: 'ဆန်ဆိုင် စာရင်းချုပ်', text: text });
+        } else {
+            navigator.clipboard.writeText(text);
+            alert('စာရင်းချုပ်ကို Copy ကူးပြီးပါပြီ။ Viber တွင် Paste ချပို့နိုင်ပါပြီ။');
+        }
+    }
+
+    initDropdowns();
+</script>
+</body>
+</html>
